@@ -49,7 +49,3 @@ func newClient(cfg config.Config) *api.Client {
 	c.Version = version
 	return c
 }
-
-// Stub — replaced in Task 15 (voice).
-
-func cmdVoice(args []string) { fmt.Fprintln(os.Stderr, "ologi: voice not implemented yet"); os.Exit(1) }
