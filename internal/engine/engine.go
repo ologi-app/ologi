@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/ologi/hypertask-cli/internal/aai"
+	"github.com/ologi/hypertask-cli/internal/api"
 	"github.com/ologi/hypertask-cli/internal/audio"
 	"github.com/ologi/hypertask-cli/internal/keylistener"
 	"github.com/ologi/hypertask-cli/internal/sound"
@@ -328,4 +329,101 @@ func (e *Engine) Stop() {
 		close(e.stopCh)
 	}
 	<-e.doneCh
+}
+
+// --- API-wired runtime wrapper --------------------------------------------
+
+// APIClient is the subset of *api.Client the engine needs. Defined as an
+// interface so tests can substitute a fake.
+type APIClient interface {
+	GetConfig() (api.ConfigResponse, error)
+	MintRealtimeToken() (string, error)
+	PostSession(api.PostSessionInput) (api.PostSessionResponse, error)
+}
+
+// SourceAppDetector returns the source-app string or "" if unavailable.
+type SourceAppDetector func() string
+
+// Runtime ties the Engine to the API client + source-app detector.
+// Main calls Runtime.Boot() once, then NewEngine(cfg, rt.OnSession, rt.MintToken).
+type Runtime struct {
+	Client         APIClient
+	Detect         SourceAppDetector
+	currentVersion int // last-seen settings_version
+}
+
+// Boot loads initial config from the server and returns the engine-
+// ready Config. Callers pass this into NewEngine.
+func (r *Runtime) Boot() (Config, error) {
+	c, err := r.Client.GetConfig()
+	if err != nil {
+		return Config{}, err
+	}
+	r.currentVersion = c.SettingsVersion
+
+	replacements := make([]ReplacementEntry, 0, len(c.Replacements))
+	for _, e := range c.Replacements {
+		replacements = append(replacements, ReplacementEntry{
+			Pattern:     e.Pattern,
+			Replacement: e.Replacement,
+		})
+	}
+
+	device := ""
+	if c.MicDevice != nil {
+		device = *c.MicDevice
+	}
+
+	return Config{
+		Hotkey:       c.Hotkey,
+		Language:     c.Language,
+		SampleRate:   16000,
+		Device:       device,
+		Channel:      0,
+		Mode:         "stream",
+		StartSound:   c.StartSound,
+		StopSound:    c.StopSound,
+		Replacements: replacements,
+	}, nil
+}
+
+// OnSession is the engine's post-dictation hook. The runtime posts the
+// session to the server and, if settings_version advanced, re-pulls
+// config in the background.
+//
+// Errors are logged but not surfaced — typewriter has already typed
+// the text regardless; losing a history row is better than crashing
+// the daemon.
+func (r *Runtime) OnSession(s Session) {
+	var srcPtr *string
+	if r.Detect != nil {
+		if src := r.Detect(); src != "" {
+			srcPtr = &src
+		}
+	}
+	resp, err := r.Client.PostSession(api.PostSessionInput{
+		Mode:       s.Mode,
+		StartedAt:  s.StartedAt,
+		EndedAt:    s.EndedAt,
+		DurationMs: s.DurationMs,
+		SourceApp:  srcPtr,
+		Text:       s.Text,
+	})
+	if err != nil {
+		log.Printf("[runtime] POST /sessions failed: %v", err)
+		return
+	}
+	if resp.SettingsVersion > r.currentVersion {
+		r.currentVersion = resp.SettingsVersion
+		// v1: fire-and-forget re-pull. Don't hot-reload the running engine.
+		go func() {
+			_, _ = r.Client.GetConfig()
+		}()
+	}
+}
+
+// MintToken exposes the api client's MintRealtimeToken for the engine's
+// TokenSource field.
+func (r *Runtime) MintToken() (string, error) {
+	return r.Client.MintRealtimeToken()
 }
