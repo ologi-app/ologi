@@ -50,9 +50,6 @@ func newClient(cfg config.Config) *api.Client {
 	return c
 }
 
-// Stubs — replaced in Tasks 14 (login/logout/status) and 15 (voice).
+// Stub — replaced in Task 15 (voice).
 
-func cmdLogin(args []string)  { fmt.Fprintln(os.Stderr, "ologi: login not implemented yet"); os.Exit(1) }
-func cmdLogout(args []string) { fmt.Fprintln(os.Stderr, "ologi: logout not implemented yet"); os.Exit(1) }
-func cmdStatus(args []string) { fmt.Fprintln(os.Stderr, "ologi: status not implemented yet"); os.Exit(1) }
-func cmdVoice(args []string)  { fmt.Fprintln(os.Stderr, "ologi: voice not implemented yet"); os.Exit(1) }
+func cmdVoice(args []string) { fmt.Fprintln(os.Stderr, "ologi: voice not implemented yet"); os.Exit(1) }
