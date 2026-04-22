@@ -7,12 +7,12 @@ import (
 	"sort"
 	"time"
 
-	"github.com/ologi/hypertask-cli/internal/aai"
-	"github.com/ologi/hypertask-cli/internal/api"
-	"github.com/ologi/hypertask-cli/internal/audio"
-	"github.com/ologi/hypertask-cli/internal/keylistener"
-	"github.com/ologi/hypertask-cli/internal/sound"
-	"github.com/ologi/hypertask-cli/internal/typewriter"
+	"github.com/ologi-app/ologi/internal/aai"
+	"github.com/ologi-app/ologi/internal/api"
+	"github.com/ologi-app/ologi/internal/audio"
+	"github.com/ologi-app/ologi/internal/keylistener"
+	"github.com/ologi-app/ologi/internal/sound"
+	"github.com/ologi-app/ologi/internal/typewriter"
 )
 
 type EventType int

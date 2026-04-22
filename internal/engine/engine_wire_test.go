@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ologi/hypertask-cli/internal/api"
+	"github.com/ologi-app/ologi/internal/api"
 )
 
 type fakeAPI struct {

@@ -1,4 +1,4 @@
-module github.com/ologi/hypertask-cli
+module github.com/ologi-app/ologi
 
 go 1.26.1
 

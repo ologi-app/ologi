@@ -6,9 +6,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ologi/hypertask-cli/internal/engine"
-	"github.com/ologi/hypertask-cli/internal/launchd"
-	"github.com/ologi/hypertask-cli/internal/sourceapp"
+	"github.com/ologi-app/ologi/internal/engine"
+	"github.com/ologi-app/ologi/internal/launchd"
+	"github.com/ologi-app/ologi/internal/sourceapp"
 )
 
 func cmdVoice(args []string) {

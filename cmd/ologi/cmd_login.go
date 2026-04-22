@@ -9,9 +9,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ologi/hypertask-cli/internal/api"
-	"github.com/ologi/hypertask-cli/internal/config"
-	"github.com/ologi/hypertask-cli/internal/launchd"
+	"github.com/ologi-app/ologi/internal/api"
+	"github.com/ologi-app/ologi/internal/config"
+	"github.com/ologi-app/ologi/internal/launchd"
 )
 
 func cmdLogin(args []string) {

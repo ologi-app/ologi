@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ologi/hypertask-cli/internal/api"
-	"github.com/ologi/hypertask-cli/internal/config"
+	"github.com/ologi-app/ologi/internal/api"
+	"github.com/ologi-app/ologi/internal/config"
 )
 
 const defaultServerURL = "https://voice.ologi.app"
