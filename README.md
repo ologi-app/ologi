@@ -5,7 +5,7 @@ Talk your way through your AI conversations. macOS only in v1.
 ## Install
 
 ```sh
-brew install ologi/tap/ologi
+brew install ologi-app/tap/ologi
 ```
 
 ## Use
@@ -74,5 +74,5 @@ A separate repo `ologi/homebrew-tap` holds the formula. First time:
 Users install with:
 
 ```
-brew install ologi/tap/ologi
+brew install ologi-app/tap/ologi
 ```
