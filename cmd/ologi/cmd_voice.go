@@ -7,6 +7,7 @@ import (
 	"syscall"
 
 	"github.com/gordonklaus/portaudio"
+	"github.com/ologi-app/ologi/internal/audio"
 	"github.com/ologi-app/ologi/internal/engine"
 	"github.com/ologi-app/ologi/internal/launchd"
 	"github.com/ologi-app/ologi/internal/sourceapp"
@@ -55,6 +56,23 @@ func voiceRun() {
 
 	cfg := loadConfigOrDie()
 	c := newClient(cfg)
+
+	// Best-effort: upload our PortAudio device names so the browser
+	// settings page can populate the mic dropdown. Don't abort startup
+	// on failure — the user can still dictate, just without a fresh mic
+	// list in the dashboard.
+	if devices, err := audio.ListInputDevices(); err == nil {
+		names := make([]string, 0, len(devices))
+		for _, d := range devices {
+			names = append(names, d.Name)
+		}
+		if err := c.PatchDevice(cfg.DeviceID, names, version); err != nil {
+			fmt.Fprintf(os.Stderr, "ologi: warning — could not upload mic list: %v\n", err)
+		}
+	} else {
+		fmt.Fprintf(os.Stderr, "ologi: warning — could not enumerate mics: %v\n", err)
+	}
+
 	rt := &engine.Runtime{Client: c, Detect: sourceapp.Detect}
 
 	engineCfg, err := rt.Boot()
