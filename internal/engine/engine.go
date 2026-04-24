@@ -39,15 +39,16 @@ type EngineEvent struct {
 // Config is the engine's runtime config — a subset of the full user
 // settings, covering only what the engine actually consumes.
 type Config struct {
-	Hotkey       string
-	Language     string
-	SampleRate   int
-	Device       string
-	Channel      int
-	Mode         string // "stream" for v1
-	StartSound   string
-	StopSound    string
-	Replacements []ReplacementEntry
+	Hotkey          string
+	Language        string
+	SampleRate      int
+	Device          string
+	Channel         int
+	Mode            string // "stream" for v1
+	StartSound      string
+	StopSound       string
+	Replacements    []ReplacementEntry
+	SettingsVersion int // tracks last-seen version for pre-dictation refresh
 }
 
 // ReplacementEntry is one user dictionary row. The engine applies these
@@ -96,6 +97,7 @@ type TokenSource func() (string, error)
 
 type Engine struct {
 	cfg         Config
+	client      APIClient // optional; used for pre-dictation config refresh
 	onSession   OnSessionFunc
 	tokenSource TokenSource
 	events      chan EngineEvent
@@ -103,9 +105,12 @@ type Engine struct {
 	doneCh      chan struct{}
 }
 
-func NewEngine(cfg Config, onSession OnSessionFunc, tokenSource TokenSource) *Engine {
+// NewEngine constructs an Engine. client may be nil — if provided, the engine
+// calls GetConfig() before each dictation to pick up mic_device changes.
+func NewEngine(cfg Config, onSession OnSessionFunc, tokenSource TokenSource, client APIClient) *Engine {
 	return &Engine{
 		cfg:         cfg,
+		client:      client,
 		onSession:   onSession,
 		tokenSource: tokenSource,
 		events:      make(chan EngineEvent, 64),
@@ -200,6 +205,32 @@ func (e *Engine) Run() {
 					State: "recording",
 					Mode:  sessionMode,
 				})
+
+				// Pre-dictation config refresh: pull the latest settings so
+				// mic_device changes made in the browser take effect immediately.
+				// Best-effort: a GetConfig error just uses the cached config.
+				// NOTE: hotkey changes are NOT applied here — the OS event tap
+				// is bound once at startup and cannot be rebound mid-process.
+				if e.client != nil {
+					if newCfg, cfgErr := e.client.GetConfig(); cfgErr != nil {
+						log.Printf("[engine] config refresh failed (using cached): %v", cfgErr)
+					} else if newCfg.SettingsVersion != e.cfg.SettingsVersion {
+						micStr := "<system default>"
+						if newCfg.MicDevice != nil {
+							micStr = *newCfg.MicDevice
+						}
+						log.Printf("[engine] config updated (v%d → v%d): hotkey=%s mic=%s",
+							e.cfg.SettingsVersion, newCfg.SettingsVersion,
+							e.cfg.Hotkey, micStr)
+						// Apply mic_device change for this capture.
+						if newCfg.MicDevice != nil {
+							e.cfg.Device = *newCfg.MicDevice
+						} else {
+							e.cfg.Device = "" // nil pointer means system default
+						}
+						e.cfg.SettingsVersion = newCfg.SettingsVersion
+					}
+				}
 
 				var actualRate int
 				capture, actualRate, err = audio.NewAudioCapture(e.cfg.SampleRate, e.cfg.Device, e.cfg.Channel, nil)
@@ -345,7 +376,7 @@ type APIClient interface {
 type SourceAppDetector func() string
 
 // Runtime ties the Engine to the API client + source-app detector.
-// Main calls Runtime.Boot() once, then NewEngine(cfg, rt.OnSession, rt.MintToken).
+// Main calls Runtime.Boot() once, then NewEngine(cfg, rt.OnSession, rt.MintToken, rt.Client).
 type Runtime struct {
 	Client         APIClient
 	Detect         SourceAppDetector
@@ -375,15 +406,16 @@ func (r *Runtime) Boot() (Config, error) {
 	}
 
 	return Config{
-		Hotkey:       c.Hotkey,
-		Language:     c.Language,
-		SampleRate:   16000,
-		Device:       device,
-		Channel:      0,
-		Mode:         "stream",
-		StartSound:   c.StartSound,
-		StopSound:    c.StopSound,
-		Replacements: replacements,
+		Hotkey:          c.Hotkey,
+		Language:        c.Language,
+		SampleRate:      16000,
+		Device:          device,
+		Channel:         0,
+		Mode:            "stream",
+		StartSound:      c.StartSound,
+		StopSound:       c.StopSound,
+		Replacements:    replacements,
+		SettingsVersion: c.SettingsVersion,
 	}, nil
 }
 
