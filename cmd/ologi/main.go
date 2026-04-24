@@ -25,6 +25,8 @@ func main() {
 		cmdLogout(os.Args[2:])
 	case "status":
 		cmdStatus(os.Args[2:])
+	case "config":
+		cmdConfig(os.Args[2:])
 	case "voice":
 		cmdVoice(os.Args[2:])
 	default:
@@ -41,6 +43,7 @@ Usage:
   ologi login                   Link this device to your Ologi account
   ologi logout                  Revoke the link, remove local config
   ologi status                  Show account + voice daemon status
+  ologi config                  Open this device's settings in the browser
   ologi voice run               Start the foreground listener
   ologi voice start             Start the launchd-managed daemon
   ologi voice stop              Stop the daemon
