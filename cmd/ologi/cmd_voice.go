@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/gordonklaus/portaudio"
 	"github.com/ologi-app/ologi/internal/engine"
 	"github.com/ologi-app/ologi/internal/launchd"
 	"github.com/ologi-app/ologi/internal/sourceapp"
@@ -45,6 +46,12 @@ func voiceRun() {
 		fmt.Fprintln(os.Stderr, "ologi: voice daemon is already running under launchd (use 'ologi voice stop' first)")
 		os.Exit(3)
 	}
+
+	if err := portaudio.Initialize(); err != nil {
+		fmt.Fprintf(os.Stderr, "ologi: portaudio init: %v\n", err)
+		os.Exit(1)
+	}
+	defer portaudio.Terminate()
 
 	cfg := loadConfigOrDie()
 	c := newClient(cfg)
