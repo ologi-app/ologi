@@ -81,7 +81,7 @@ func voiceRun() {
 		os.Exit(1)
 	}
 
-	eng := engine.NewEngine(engineCfg, rt.OnSession, rt.MintToken)
+	eng := engine.NewEngine(engineCfg, rt.OnSession, rt.MintToken, rt.Client)
 	go eng.Run()
 
 	// Drain events (we don't surface them in v1).
