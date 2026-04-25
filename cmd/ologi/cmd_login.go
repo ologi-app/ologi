@@ -15,12 +15,12 @@ import (
 )
 
 func cmdLogin(args []string) {
-	// Default device name is the machine's hostname.
-	defaultName, _ := os.Hostname()
-	fmt.Fprintf(os.Stderr, "Device name [%s]: ", defaultName)
-	name := readLine()
+	// Use the machine hostname as the device name. Same hostname on the
+	// same account reuses the device row server-side (the api_key is
+	// rotated). Rename your Mac and the next login creates a fresh row.
+	name, _ := os.Hostname()
 	if name == "" {
-		name = defaultName
+		name = "unknown-device"
 	}
 
 	// Pre-create a client with no API key for /login/start.
