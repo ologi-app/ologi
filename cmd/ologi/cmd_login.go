@@ -9,7 +9,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/gordonklaus/portaudio"
 	"github.com/ologi-app/ologi/internal/api"
+	"github.com/ologi-app/ologi/internal/audio"
 	"github.com/ologi-app/ologi/internal/config"
 	"github.com/ologi-app/ologi/internal/launchd"
 )
@@ -100,6 +102,7 @@ func cmdLogin(args []string) {
 				os.Exit(1)
 			}
 			fmt.Fprintf(os.Stderr, "\n✓ linked as %q\n", name)
+			uploadMicsBestEffort(serverOverride, resp.APIKey, resp.DeviceID)
 			return
 		default:
 			fmt.Fprintf(os.Stderr, "\nologi: unexpected status %q\n", resp.Status)
@@ -162,6 +165,30 @@ func cmdStatus(args []string) {
 	} else {
 		fmt.Println("voice:   stopped")
 	}
+}
+
+// uploadMicsBestEffort enumerates PortAudio input devices and uploads the
+// names so the per-device settings page can show a real mic dropdown
+// without requiring `ologi voice run` first. Fails silently — the daemon
+// uploads again on its first run as a fallback.
+func uploadMicsBestEffort(serverURL, apiKey, deviceID string) {
+	if err := portaudio.Initialize(); err != nil {
+		return
+	}
+	defer portaudio.Terminate()
+
+	devices, err := audio.ListInputDevices()
+	if err != nil {
+		return
+	}
+	names := make([]string, 0, len(devices))
+	for _, d := range devices {
+		names = append(names, d.Name)
+	}
+
+	c := api.NewClient(serverURL, apiKey)
+	c.Version = version
+	_ = c.PatchDevice(deviceID, names, version)
 }
 
 // readLine reads a line from stdin, trimming trailing whitespace.
