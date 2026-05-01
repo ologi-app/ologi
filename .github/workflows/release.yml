@@ -42,10 +42,14 @@ jobs:
             -o ologi \
             ./cmd/ologi
 
-      # TODO(sign-and-notarize): add code-signing + notarytool steps
-      # when Apple Developer secrets are provisioned. See the spec's
-      # D10 risk/mitigation. For now ship unsigned; users will need to
-      # `xattr -d com.apple.quarantine` on the binary on first run.
+      # Ad-hoc sign — gives the binary a stable identity for TCC
+      # (mic + accessibility prompts) without an Apple Developer cert.
+      # Real Developer ID signing + notarytool is still a TODO; brew
+      # install via curl avoids the quarantine flag, so Gatekeeper
+      # doesn't block this path. Direct GitHub Releases downloads will
+      # still need `xattr -d com.apple.quarantine`.
+      - name: Ad-hoc sign
+        run: codesign --sign - --force --options runtime ./ologi
 
       - name: Package tarball
         run: |
