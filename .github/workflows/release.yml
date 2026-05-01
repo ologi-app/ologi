@@ -52,7 +52,11 @@ jobs:
       # doesn't block this path. Direct GitHub Releases downloads will
       # still need `xattr -d com.apple.quarantine`.
       - name: Ad-hoc sign
-        run: codesign --sign - --force --options runtime ./ologi
+        # Hardened runtime (--options runtime) blocks loading brew's
+        # libportaudio because of Team ID mismatch. Ad-hoc signing
+        # alone gives the binary stable identity for TCC; hardened
+        # runtime is only required when notarizing.
+        run: codesign --sign - --force ./ologi
 
       - name: Package tarball
         run: |
