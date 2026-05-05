@@ -28,7 +28,7 @@ func cmdConfig(args []string) {
 	if server == "" {
 		server = defaultServerURL
 	}
-	url := fmt.Sprintf("%s/voice/devices/%s/settings", server, cfg.DeviceID)
+	url := fmt.Sprintf("%s/voice?device=%s#settings", server, cfg.DeviceID)
 
 	fmt.Fprintf(os.Stderr, "Opening %s\n", url)
 	if err := exec.Command("open", url).Start(); err != nil {
