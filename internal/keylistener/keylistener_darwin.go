@@ -274,7 +274,10 @@ func flagMaskForBind(name string) (uint64, error) {
 
 // StartKeyListener begins monitoring the global keybind. Key events are sent to
 // the returned channel. The EventTap runs on its own goroutine with a CFRunLoop.
-func StartKeyListener(keybind string) (chan KeyEvent, error) {
+// StartKeyListener begins watching for the given key. tapMode is "single"
+// (raw press/release passes through) or "double" (engages on
+// double-tap-and-hold; see DoubleTapFilter).
+func StartKeyListener(keybind, tapMode string) (chan KeyEvent, error) {
 	code, err := keycodeForBind(keybind)
 	if err != nil {
 		return nil, err
@@ -294,9 +297,12 @@ func StartKeyListener(keybind string) (chan KeyEvent, error) {
 		}
 	}()
 
-	// Wrap raw events with double-tap detection.
-	filtered := DoubleTapFilter(keyEventCh)
-	return filtered, nil
+	// In single-tap mode, every press/release pair is a session. In
+	// double-tap mode (default), gate engagement behind double-tap-and-hold.
+	if tapMode == "single" {
+		return keyEventCh, nil
+	}
+	return DoubleTapFilter(keyEventCh), nil
 }
 
 // DoubleTapFilter converts raw key events into double-tap-and-hold events.

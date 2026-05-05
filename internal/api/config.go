@@ -8,6 +8,7 @@ type ConfigResponse struct {
 	Hotkey          string             `json:"hotkey"`
 	Language        string             `json:"language"`
 	MicDevice       *string            `json:"mic_device"`
+	TapMode         string             `json:"tap_mode"` // "single" | "double"
 	StartSound      string             `json:"start_sound"`
 	StopSound       string             `json:"stop_sound"`
 	Replacements    []ReplacementEntry `json:"replacements"`

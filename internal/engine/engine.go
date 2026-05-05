@@ -40,6 +40,7 @@ type EngineEvent struct {
 // settings, covering only what the engine actually consumes.
 type Config struct {
 	Hotkey          string
+	TapMode         string // "single" | "double" — single skips the double-tap filter
 	Language        string
 	SampleRate      int
 	Device          string
@@ -145,7 +146,7 @@ func (e *Engine) emit(ev EngineEvent) {
 func (e *Engine) Run() {
 	defer close(e.doneCh)
 
-	keys, err := keylistener.StartKeyListener(e.cfg.Hotkey)
+	keys, err := keylistener.StartKeyListener(e.cfg.Hotkey, e.cfg.TapMode)
 	if err != nil {
 		e.emit(EngineEvent{Type: EventError, Error: err})
 		return
@@ -154,7 +155,11 @@ func (e *Engine) Run() {
 	sound.InitSounds(e.cfg.StartSound, e.cfg.StopSound)
 	tw := typewriter.NewTypeWriter()
 
-	log.Printf("[engine] ready — double-%s to dictate (stream)", e.cfg.Hotkey)
+	gesture := "double-"
+	if e.cfg.TapMode == "single" {
+		gesture = "hold "
+	}
+	log.Printf("[engine] ready — %s%s to dictate (stream)", gesture, e.cfg.Hotkey)
 	e.emit(EngineEvent{Type: EventStatusChanged, State: "idle"})
 
 	var capture *audio.AudioCapture
@@ -405,8 +410,14 @@ func (r *Runtime) Boot() (Config, error) {
 		device = *c.MicDevice
 	}
 
+	tapMode := c.TapMode
+	if tapMode != "single" && tapMode != "double" {
+		tapMode = "double"
+	}
+
 	return Config{
 		Hotkey:          c.Hotkey,
+		TapMode:         tapMode,
 		Language:        c.Language,
 		SampleRate:      16000,
 		Device:          device,
