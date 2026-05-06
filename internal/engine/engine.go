@@ -326,6 +326,14 @@ func (e *Engine) Run() {
 				})
 
 				if sessionMode == "stream" {
+					// Trailing-edge grace: keep capturing briefly after key
+					// release so words spoken right at the release boundary
+					// still reach AssemblyAI before we close the stream.
+					// Cloud STT doesn't snap back the way local Whisper does
+					// — its inference window needs some audio after the last
+					// word for the final commit. Stopping the mic the
+					// instant the key goes up clips that.
+					time.Sleep(300 * time.Millisecond)
 					capture.Stop()
 					aaiClient.WaitForFormattedTurn(500 * time.Millisecond)
 					aaiClient.Stop()
