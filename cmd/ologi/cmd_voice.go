@@ -43,9 +43,16 @@ func cmdVoice(args []string) {
 func voiceRun() {
 	// If the daemon is already loaded under launchd, refuse to start a
 	// second copy — the two would fight for the mic.
+	//
+	// Exception: if XPC_SERVICE_NAME matches our launchd label, we ARE
+	// the launchd-launched instance, not a duplicate. macOS sets that
+	// env var on processes spawned by launchd. Without this branch the
+	// daemon respawn-loops forever after `ologi voice start`.
 	if loaded, _ := launchd.IsLoaded(); loaded {
-		fmt.Fprintln(os.Stderr, "ologi: voice daemon is already running under launchd (use 'ologi voice stop' first)")
-		os.Exit(3)
+		if os.Getenv("XPC_SERVICE_NAME") != launchd.Label {
+			fmt.Fprintln(os.Stderr, "ologi: voice daemon is already running under launchd (use 'ologi voice stop' first)")
+			os.Exit(3)
+		}
 	}
 
 	if err := portaudio.Initialize(); err != nil {
