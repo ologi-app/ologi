@@ -11,18 +11,36 @@ permissions:
 jobs:
   build-and-release:
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - runner: macos-14      # arm64
+          - runner: macos-14
+            os: darwin
             arch: arm64
-          - runner: macos-13      # intel
+          - runner: macos-13
+            os: darwin
             arch: amd64
+          - runner: ubuntu-22.04
+            os: linux
+            arch: amd64
+          - runner: ubuntu-22.04-arm
+            os: linux
+            arch: arm64
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install PortAudio
+      - name: Install PortAudio (macOS)
+        if: matrix.os == 'darwin'
         run: brew install portaudio
+
+      - name: Install build deps (Linux)
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libportaudio2 portaudio19-dev \
+            libx11-dev libxi-dev libxtst-dev
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -45,22 +63,18 @@ jobs:
             -o ologi \
             ./cmd/ologi
 
-      # Ad-hoc sign — gives the binary a stable identity for TCC
-      # (mic + accessibility prompts) without an Apple Developer cert.
-      # Real Developer ID signing + notarytool is still a TODO; brew
-      # install via curl avoids the quarantine flag, so Gatekeeper
-      # doesn't block this path. Direct GitHub Releases downloads will
-      # still need `xattr -d com.apple.quarantine`.
-      - name: Ad-hoc sign
-        # Hardened runtime (--options runtime) blocks loading brew's
-        # libportaudio because of Team ID mismatch. Ad-hoc signing
-        # alone gives the binary stable identity for TCC; hardened
-        # runtime is only required when notarizing.
+      # macOS only: ad-hoc sign so TCC permissions stick more reliably.
+      # Hardened runtime (--options runtime) is intentionally NOT used —
+      # it would block loading brew's libportaudio (Team ID mismatch).
+      # Real Developer ID signing + notarytool is still a TODO; the
+      # brew-install path avoids the quarantine flag.
+      - name: Ad-hoc sign (macOS)
+        if: matrix.os == 'darwin'
         run: codesign --sign - --force ./ologi
 
       - name: Package tarball
         run: |
-          NAME="ologi-${{ steps.ver.outputs.version }}-darwin-${{ matrix.arch }}"
+          NAME="ologi-${{ steps.ver.outputs.version }}-${{ matrix.os }}-${{ matrix.arch }}"
           mkdir -p dist
           tar czf "dist/${NAME}.tar.gz" ologi
           shasum -a 256 "dist/${NAME}.tar.gz" > "dist/${NAME}.tar.gz.sha256"

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strings"
 	"syscall"
@@ -43,8 +42,8 @@ func cmdLogin(args []string) {
 	fmt.Fprintf(os.Stderr, "Approval URL: %s\n", start.VerificationURL)
 	fmt.Fprintln(os.Stderr, "\nOpening the approval URL in your browser… (if it doesn't open, visit the URL manually)")
 
-	// `open` on macOS — don't hard-fail if it can't launch.
-	_ = exec.Command("open", start.VerificationURL).Start()
+	// Best-effort browser launch — don't hard-fail if it can't.
+	_ = openURL(start.VerificationURL)
 
 	// Poll loop. Cap at 10 minutes.
 	interval := time.Duration(start.IntervalMs) * time.Millisecond

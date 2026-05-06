@@ -1,3 +1,5 @@
+//go:build darwin
+
 // Package launchd writes and controls the app.ologi.voice LaunchAgent.
 package launchd
 

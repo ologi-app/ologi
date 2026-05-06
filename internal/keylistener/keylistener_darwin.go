@@ -1,3 +1,5 @@
+//go:build darwin
+
 package keylistener
 
 /*
@@ -121,14 +123,9 @@ import "C"
 import (
 	"fmt"
 	"log"
-	"time"
 )
 
-// KeyEvent represents a key press or release.
-type KeyEvent struct {
-	Down  bool
-	Shift bool // whether shift was held during this event
-}
+// KeyEvent + DoubleTapFilter live in keylistener.go (shared across OS impls).
 
 var keyEventCh chan KeyEvent
 
@@ -305,66 +302,4 @@ func StartKeyListener(keybind, tapMode string) (chan KeyEvent, error) {
 	return DoubleTapFilter(keyEventCh), nil
 }
 
-// DoubleTapFilter converts raw key events into double-tap-and-hold events.
-// Pattern: press, release, press (hold) within 300ms → engaged.
-// Release after engaged → disengaged.
-func DoubleTapFilter(raw chan KeyEvent) chan KeyEvent {
-	out := make(chan KeyEvent, 16)
-	const window = 300 * time.Millisecond
-
-	go func() {
-		// States: idle → sawFirstDown → sawFirstUp → engaged
-		type state int
-		const (
-			idle        state = iota
-			sawFirstDown
-			sawFirstUp
-			engaged
-		)
-
-		st := idle
-		var firstUpTime time.Time
-
-		var engageShift bool
-		for ev := range raw {
-			switch st {
-			case idle:
-				if ev.Down {
-					st = sawFirstDown
-				}
-			case sawFirstDown:
-				if !ev.Down {
-					// First tap released
-					st = sawFirstUp
-					firstUpTime = time.Now()
-				}
-			case sawFirstUp:
-				if ev.Down {
-					if time.Since(firstUpTime) <= window {
-						// Second press within window — engage!
-						st = engaged
-						engageShift = ev.Shift
-						select {
-						case out <- KeyEvent{Down: true, Shift: engageShift}:
-						default:
-						}
-					} else {
-						// Too slow — treat as new first tap
-						st = sawFirstDown
-					}
-				}
-			case engaged:
-				if !ev.Down {
-					// Released after engaged
-					st = idle
-					select {
-					case out <- KeyEvent{Down: false, Shift: engageShift}:
-					default:
-					}
-				}
-			}
-		}
-	}()
-
-	return out
-}
+// DoubleTapFilter moved to keylistener.go (shared across OS impls).

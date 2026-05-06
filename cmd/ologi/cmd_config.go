@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/ologi-app/ologi/internal/config"
@@ -31,7 +30,7 @@ func cmdConfig(args []string) {
 	url := fmt.Sprintf("%s/voice?device=%s#settings", server, cfg.DeviceID)
 
 	fmt.Fprintf(os.Stderr, "Opening %s\n", url)
-	if err := exec.Command("open", url).Start(); err != nil {
+	if err := openURL(url); err != nil {
 		fmt.Fprintf(os.Stderr, "ologi: could not open browser: %v\n", err)
 		fmt.Fprintln(os.Stderr, "Visit the URL above manually.")
 		os.Exit(1)
